@@ -72,9 +72,7 @@ Here's a comparison of VALLR's performance against other state-of-the-art method
 #### Prerequisites
 
 * Python 3.8 or higher
-* PyTorch
-* Mediapipe
-* Wandb
+* PyTorch 2.4.1
 * Other dependencies listed in `requirements.txt`
 
 #### Installation
