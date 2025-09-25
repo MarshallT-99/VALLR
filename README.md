@@ -7,9 +7,7 @@
 
 
 
-[![arXiv](https://img.shields.io/badge/arXiv-2503.21408-b31b1b.svg)](https://arxiv.org/abs/2503.21408)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[Paper Link](https://arxiv.org/abs/2503.21408) 
+[![arXiv](https://img.shields.io/badge/arXiv-2503.21408-b31b1b.svg)](https://arxiv.org/abs/2503.21408) 
 
 VALLR is a novel two-stage, phoneme-centric framework for **Visual Automatic Speech Recognition (VASR)** that achieves state-of-the-art performance in lip reading. This approach significantly reduces **Word Error Rate (WER)** by first predicting a sequence of phonemes from visual inputs and then using a fine-tuned **Large Language Model (LLM)** to reconstruct coherent words and sentences. This repository contains the official PyTorch implementation of the VALLR model, along with tools for data preprocessing and inference.
 
