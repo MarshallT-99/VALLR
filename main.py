@@ -518,7 +518,7 @@ def load_finetuned_model(model_path, device, version, vocab):
 
     return model
 
-def run_inference(model_path, video_path, device, phoneme_vocab, beam_width=3):
+def run_inference(model_path, version, video_path, device, phoneme_vocab, beam_width=3):
     """
     Run inference using the fine-tuned model.
     Args:
@@ -532,16 +532,12 @@ def run_inference(model_path, video_path, device, phoneme_vocab, beam_width=3):
     # Load the video inputs with the correct number of frames
     video_inputs = load_videos(video_path, num_frames=16)
 
-        # Load GPT model and tokenizer
-    gpt_model = GPT2LMHeadModel.from_pretrained("gpt2")
-    gpt_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-
     if video_inputs is None:
         print("Error: Failed to load video frames.")
         return []
 
     # Load the fine-tuned model
-    model = load_finetuned_model(model_path, device, phoneme_vocab)
+    model = load_finetuned_model(model_path, device, version, phoneme_vocab)
 
     # Load the phoneme vocabulary
     reverse_vocab = {v: k for k, v in phoneme_vocab.items()}  # Reverse mapping from index to phoneme
