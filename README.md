@@ -97,6 +97,10 @@ To run inference on a single video, use the `infer` mode and provide the path to
     ```bash
     python main.py --mode infer --model_path /path/to/your/downloaded/model.pth --infer_video_path /path/to/your/video.mp4
     ```
+3.  **Train mode**:
+    ```bash
+    python3 main.py --mode train --version V1 --save_model_path path/to/model --videos_root path/to/videos
+    ```
 
 ---
 
