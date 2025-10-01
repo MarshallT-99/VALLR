@@ -302,14 +302,13 @@ def save_model(model, save_model_path):
     torch.save(model.state_dict(), save_model_path)
     print(f"Model saved to {save_model_path}")
 
-def train(device, video_path, batch_size, num_workers, epochs, save_model_path, sample_size, vocab):
+def train(device, version, video_path, batch_size, num_workers, epochs, save_model_path, sample_size, vocab):
     """Main training function."""
 
     torch.cuda.empty_cache()  # Clear CUDA memory
 
     # Extract the pretrained vocabulary
     phoneme_vocab = vocab # tokenizer.get_vocab()
-
     # Initialize model
     if version == "V1":
         videomae_config = VideoMAEConfig()  # Use default configuration
