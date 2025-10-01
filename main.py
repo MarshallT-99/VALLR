@@ -1,10 +1,12 @@
+from curses import version
 import torch
 import wandb
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn.utils.rnn as rnn_utils
-from Models.ML_VALLR import VALLR
+from Models.ML_VALLR import ML_VALLR
+from Models.VALLR import VALLR
 from Data.dataset import VideoDataset
 import torch.nn as nn
 from config import load_args, WarmupScheduler, get_vocab
@@ -124,19 +126,13 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, phoneme_voc
 
         # Forward pass with mixed precision
         with autocast('cuda'):
-            raw_logits, _ = model(videos)  # Raw logits, ignore features
-            # print("Logits shape before transpose:", raw_logits.shape)  # Should be (batch_size, time_steps, num_classes)
+            raw_logits, _ = model(videos)  # Raw logits, ignore featuress)
             raw_logits = raw_logits.log_softmax(dim=-1)  # Apply log_softmax to get log probabilities
-            # logits = clamp_logits(logits, -20, 20)  # Clamping logits to prevent numerical instability
             transpose_logits = raw_logits.transpose(0, 1)  # (time_steps, batch_size, num_classes)
 
             batch_size = transpose_logits.size(1)
             input_lengths = torch.full(size=(batch_size,), fill_value=transpose_logits.size(0), dtype=torch.long).to(device)
             target_lengths = torch.tensor([label.size(0) for label in labels], dtype=torch.long).to(device)
-
-            # print("Logits shape after transpose:", transpose_logits.shape)  # Should be (time_steps, batch_size, num_classes)
-            # print("input_lengths", input_lengths)
-            # print("target_lengths", target_lengths)
 
             if input_lengths.min() < target_lengths.max():
                 print(f"Skipping batch: input lengths {input_lengths.min()} < target lengths {target_lengths.max()}")
@@ -157,9 +153,6 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, phoneme_voc
             # Backward pass with mixed precision scaling
             scaler.scale(loss).backward()
 
-            # Monitor gradients
-            # monitor_gradients(model)
-
             # Gradient clipping 
             scaler.unscale_(optimizer)  # Unscale gradients before clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)  # Perform gradient clipping
@@ -175,13 +168,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, phoneme_voc
         # Decode predicted outputs (using argmax)
         predicted_indices = torch.argmax(raw_logits, dim=-1)
 
-        # print("Predicted Indicies Shape", predicted_indices.shape)
-        # print("Predicted Indicies", predicted_indices)
-
         predicted_phonemes = []
-        # for pred_idx_seq in predicted_indices:z
-        #     phoneme_seq = [reverse_vocab[idx] for idx in pred_idx_seq.tolist() if idx in reverse_vocab and idx != phoneme_vocab['<pad>']]
-        #     predicted_phonemes.append(phoneme_seq)
         for batch_idx in range(predicted_indices.size(0)):  # Iterate over batch dimension
             frame_sequence = predicted_indices[batch_idx].tolist()  # Get predictions for the current sequence
 
@@ -206,8 +193,6 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, phoneme_voc
         for label_seq in labels:
             phoneme_seq = [reverse_vocab[idx.item()] for idx in label_seq if idx.item() in reverse_vocab]
             true_phonemes.append(phoneme_seq)
-
-        # print("True Phonemes", true_phonemes)
 
         # Calculate accuracy by comparing the predicted and true phonemes
         for pred_seq, true_seq in zip_longest(predicted_phonemes, true_phonemes, fillvalue=[]):
@@ -270,9 +255,6 @@ def validate_one_epoch(model, dataloader, criterion, device, phoneme_vocab):
             # Decode predicted outputs (using argmax)
             predicted_indices = torch.argmax(raw_logits, dim=-1)
 
-            # print("Predicted Indicies Shape", predicted_indices.shape)
-            # print("Predicted Indicies", predicted_indices)
-
             predicted_phonemes = []
             for batch_idx in range(predicted_indices.size(0)):  # Iterate over batch dimension
                 frame_sequence = predicted_indices[batch_idx].tolist()  # Get predictions for the current sequence
@@ -328,16 +310,26 @@ def train(device, video_path, batch_size, num_workers, epochs, save_model_path, 
     # Extract the pretrained vocabulary
     phoneme_vocab = vocab # tokenizer.get_vocab()
 
-    # Initialize model with pretrained VideoMAE and Wav2Vec2 models
-    model = VALLR(
-        adapter_dim=256,                    # Adapter dimension # Based on the sampling frequency of the video
-        num_classes=len(phoneme_vocab)
-    )
+    # Initialize model
+    if version == "V1":
+        videomae_config = VideoMAEConfig()  # Use default configuration
+        wav2vec_config = Wav2Vec2Config()
+        wav2vec_config.vocab_size = len(vocab)
+
+        model= VALLR(
+            videomae_config=videomae_config,
+            wav2vec_config=wav2vec_config,
+            adapter_dim=256,
+        )
+    elif version == "V2":
+        model = ML_VALLR(
+            adapter_dim=256,                    # Adapter dimension # Based on the sampling frequency of the video
+            num_classes=len(phoneme_vocab)
+        )
 
     print(f"Model has {sum(p.numel() for p in model.parameters() if p.requires_grad):,} trainable parameters.")
 
     criterion = nn.CTCLoss(blank=phoneme_vocab['<pad>'], reduction="mean", zero_infinity=True)
-    # criterion = nn.CTCLoss(reduction="mean", zero_infinity=True)
     lr = 1e-6  # initial learning rate
     target_lr = 1e-4  # final learning rate after warm-up
     warmup_steps = 500  # define your warmup steps
@@ -485,7 +477,7 @@ def load_videos(video_path, num_frames=16, frame_size=(224, 224)):
 
     return video_tensor
 
-def load_finetuned_model(model_path, device, vocab):
+def load_finetuned_model(model_path, device, version, vocab):
     """
     Load the fine-tuned model from the given checkpoint.
     Args:
@@ -497,13 +489,24 @@ def load_finetuned_model(model_path, device, vocab):
     """
     # Extract the pretrained vocabulary
     phoneme_vocab = vocab # tokenizer.get_vocab()
-    # print(phoneme_vocab)
 
-    # Initialize the VT4SM model
-    model = VALLR(
-        adapter_dim=5,  # Adjust this based on your adapter dimensions
-        num_classes=len(phoneme_vocab)
-    )
+    # Initialize model 
+    if version == "V1":
+        videomae_config = VideoMAEConfig()  # Use default configuration
+        # wav2vec_config = Wav2Vec2Config()  # Use default configuration
+        wav2vec_config = Wav2Vec2Config()
+        wav2vec_config.vocab_size = len(vocab)
+
+        model= VALLR(
+            videomae_config=videomae_config,
+            wav2vec_config=wav2vec_config,
+            adapter_dim=256,
+        )
+    elif version == "V2":
+        model = ML_VALLR(
+            adapter_dim=256,  # Adjust this based on your adapter dimensions
+            num_classes=len(phoneme_vocab)
+        )
 
     # Load the saved state dict (fine-tuned model weights)
     model.load_state_dict(torch.load(model_path, map_location=device))
@@ -575,13 +578,14 @@ def main(args):
     epochs = args.epochs
     save_model_path = args.save_model_path
     sample_size = args.sample_size
+    version = args.version
     vocab = get_vocab()
 
     if mode == "train":
         print("Training")
-        train(device, video_path, batch_size, num_workers, epochs, save_model_path, sample_size, vocab)
+        train(device, version, video_path, batch_size, num_workers, epochs, save_model_path, sample_size, vocab)
     elif mode == "infer":
-        print("Inferences", run_inference(save_model_path, video_path, device, vocab))
+        print("Inferences", run_inference(save_model_path, version, video_path, device, vocab))
 
 if __name__ == "__main__":
     main(args)
