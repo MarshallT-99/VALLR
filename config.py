@@ -11,35 +11,36 @@ def load_args():
     parser.add_argument('--device', type=str, default='cuda', help="Device to use for computation ('cuda' or 'cpu')")
 
     # Model configuration
-    parser.add_argument('--ckpt_path', default=None, help="Path to the model checkpoint for loading")
+    # parser.add_argument('--ckpt_path', default=None, help="Path to the model checkpoint for loading")
     parser.add_argument('--save_model_path', type=str, help="Path to save the trained model")
-    parser.add_argument('--model_path', type=str, help="Path to the trained model for inference")
+    # parser.add_argument('--model_path', type=str, help="Path to the trained model for inference")
+    parser.add_argument('--version', type=str, choices=['V1', 'V2'], default='V1', help="Model version to use: 'V1' or 'V2'")
 
     # Data configuration
-    parser.add_argument('--feat_dim', type=int, default=512, help="Video features dimension (used if loading features directly)")
+    # parser.add_argument('--feat_dim', type=int, default=512, help="Video features dimension (used if loading features directly)")
     parser.add_argument('--videos_root', type=str, help="Root directory of the video dataset")
-    parser.add_argument('--audio_root', type=str, help="Root directory of the audio dataset")
-    parser.add_argument('--file_list', type=str, help="(List of) video file paths relative to videos_root, can also be regex")
+    # parser.add_argument('--audio_root', type=str, help="Root directory of the audio dataset")
+    # parser.add_argument('--file_list', type=str, help="(List of) video file paths relative to videos_root, can also be regex")
     parser.add_argument('--batch_size', type=int, default=32, help="Batch size for training")
     parser.add_argument('--num_workers', type=int, default=4, help="Number of worker threads for loading data")
-    parser.add_argument('--whisper_model', type=str, default="base", help="Size of the whisper model to use for transcription")
+    # parser.add_argument('--whisper_model', type=str, default="base", help="Size of the whisper model to use for transcription")
 
     # Transformer configuration
-    parser.add_argument('--num_blocks', type=int, default=6, help="Number of transformer blocks")
-    parser.add_argument('--hidden_units', type=int, default=512, help="Transformer model size (hidden units)")
-    parser.add_argument('--num_heads', type=int, default=8, help="Number of attention heads")
-    parser.add_argument('--dropout_rate', type=float, default=0.1, help="Dropout probability in the transformer")
+    # parser.add_argument('--num_blocks', type=int, default=6, help="Number of transformer blocks")
+    # parser.add_argument('--hidden_units', type=int, default=512, help="Transformer model size (hidden units)")
+    # parser.add_argument('--num_heads', type=int, default=8, help="Number of attention heads")
+    # parser.add_argument('--dropout_rate', type=float, default=0.1, help="Dropout probability in the transformer")
 
     # Preprocessing
-    parser.add_argument('--frame_size', type=int, default=224, help="Resize the input video frames to this resolution")
-    parser.add_argument('--videos_output', type=str, help="Output directory for the preporcessed video dataset")
+    # parser.add_argument('--frame_size', type=int, default=224, help="Resize the input video frames to this resolution")
+    # parser.add_argument('--videos_output', type=str, help="Output directory for the preporcessed video dataset")
 
     # Training and inference parameters
     parser.add_argument('--epochs', type=int, default=10, help="Number of training epochs")
     parser.add_argument('--sample_size', type=float, default=1, help="Percentage of the dataset to use for training")
     parser.add_argument('--mode', type=str, choices=['train', 'infer', 'WER'], help="Mode to run the script: 'train', 'infer' or 'WER'")
-    parser.add_argument('--infer_video_path', type=str, help="Path to the video file for inference")
-    parser.add_argument('--num_classes', type=int, help="Number of classes for the classifier")
+    # parser.add_argument('--infer_video_path', type=str, help="Path to the video file for inference")
+    # parser.add_argument('--num_classes', type=int, help="Number of classes for the classifier")
 
     args = parser.parse_args()
 
